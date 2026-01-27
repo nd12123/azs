@@ -1,0 +1,11 @@
+/* Minimal base styles - main styles are in App.css */
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+/* Safe area insets for mobile devices with notches */
+body {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
