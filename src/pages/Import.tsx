@@ -2,51 +2,187 @@ import { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
 
-// Map Excel column headers to database fields
-// Adjust these mappings based on your actual Excel column names
+// Normalize header: trim, collapse whitespace, lowercase
+function normalizeHeader(header: string): string {
+  return header.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+// Map NORMALIZED Excel column headers to database fields
+// All keys must be lowercase with single spaces
+// Supports both English and Russian headers
 const COLUMN_MAP: Record<string, string> = {
+  // station_no
   'station_no': 'station_no',
-  'Station No': 'station_no',
+  'station no': 'station_no',
+  'station number': 'station_no',
+  '№азс': 'station_no',
+  '№ азс': 'station_no',
+  'номер азс': 'station_no',
+
+  // npo
   'npo': 'npo',
-  'NPO': 'npo',
+  'нпо': 'npo',
+
+  // address
   'address': 'address',
-  'Address': 'address',
+  'адрес': 'address',
+  'адрес азс': 'address',
+
+  // region
   'region': 'region',
-  'Region': 'region',
+  'регион': 'region',
+
+  // location_type
   'location_type': 'location_type',
-  'Location Type': 'location_type',
+  'location type': 'location_type',
+  'расположение азс: город/трасса/прочая территория': 'location_type',
+  'расположение': 'location_type',
+  'тип расположения': 'location_type',
+
+  // station_phone
   'station_phone': 'station_phone',
-  'Station Phone': 'station_phone',
-  'Phone': 'station_phone',
+  'station phone': 'station_phone',
+  'phone': 'station_phone',
+  'номер телефона азс': 'station_phone',
+  'телефон азс': 'station_phone',
+
+  // station_email
   'station_email': 'station_email',
-  'Station Email': 'station_email',
-  'Email': 'station_email',
+  'station email': 'station_email',
+  'email': 'station_email',
+  'электронный адрес азс/ lotus': 'station_email',
+  'электронный адрес азс': 'station_email',
+  'email азс': 'station_email',
+
+  // manager_name
   'manager_name': 'manager_name',
-  'Manager Name': 'manager_name',
-  'Manager': 'manager_name',
+  'manager name': 'manager_name',
+  'manager': 'manager_name',
+  'менеджер азс фио': 'manager_name',
+  'менеджер азс': 'manager_name',
+  'фио менеджера': 'manager_name',
+
+  // manager_phone
   'manager_phone': 'manager_phone',
-  'Manager Phone': 'manager_phone',
+  'manager phone': 'manager_phone',
+  'номер телефона менеджера азс': 'manager_phone',
+  'телефон менеджера': 'manager_phone',
+
+  // territory_manager_name
   'territory_manager_name': 'territory_manager_name',
-  'Territory Manager Name': 'territory_manager_name',
-  'Territory Manager': 'territory_manager_name',
+  'territory manager name': 'territory_manager_name',
+  'territory manager': 'territory_manager_name',
+  'территориальный менеджер фио': 'territory_manager_name',
+  'территориальный менеджер': 'territory_manager_name',
+
+  // territory_manager_phone
   'territory_manager_phone': 'territory_manager_phone',
-  'Territory Manager Phone': 'territory_manager_phone',
+  'territory manager phone': 'territory_manager_phone',
+  'телефон территориального менеджера': 'territory_manager_phone',
+
+  // price_category
   'price_category': 'price_category',
-  'Price Category': 'price_category',
+  'price category': 'price_category',
+  'ценовая категория бгн': 'price_category',
+  'ценовая категория': 'price_category',
+
+  // menu
   'menu': 'menu',
-  'Menu': 'menu',
+  'действующее меню (petronics)': 'menu',
+  'меню': 'menu',
+
+  // sales_day_1
   'sales_day_1': 'sales_day_1',
-  'Sales Day 1': 'sales_day_1',
+  'sales day 1': 'sales_day_1',
+  'реализация в день 1': 'sales_day_1',
+
+  // sales_day_2
   'sales_day_2': 'sales_day_2',
-  'Sales Day 2': 'sales_day_2',
+  'sales day 2': 'sales_day_2',
+  'реализация в день 2': 'sales_day_2',
+
+  // sales_day_3
   'sales_day_3': 'sales_day_3',
-  'Sales Day 3': 'sales_day_3',
+  'sales day 3': 'sales_day_3',
+  'реализация в день 3': 'sales_day_3',
 };
+
+// Fields that should always be treated as text (preserve leading zeros)
+const TEXT_FIELDS = new Set([
+  'station_no',
+  'station_phone',
+  'manager_phone',
+  'territory_manager_phone',
+]);
+
+// Fields that should be numeric
+const NUMERIC_FIELDS = new Set(['sales_day_1', 'sales_day_2', 'sales_day_3']);
 
 interface ImportResult {
   success: boolean;
   imported: number;
   errors: string[];
+}
+
+function normalizeValue(dbField: string, value: unknown): unknown {
+  // Handle null/undefined/empty
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  // Numeric fields
+  if (NUMERIC_FIELDS.has(dbField)) {
+    const num = typeof value === 'number' ? value : parseFloat(String(value));
+    return isNaN(num) ? null : num;
+  }
+
+  // Text fields - always convert to string, preserve as-is
+  if (TEXT_FIELDS.has(dbField)) {
+    return String(value).trim();
+  }
+
+  // All other fields - convert to string
+  return String(value).trim();
+}
+
+function mapRowToStation(row: Record<string, unknown>, rowIndex: number): Record<string, unknown> | null {
+  const station: Record<string, unknown> = {
+    is_active: true,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Debug: log headers on first row
+  if (rowIndex === 0) {
+    console.log('Excel headers:', Object.keys(row));
+    console.log('Normalized headers:', Object.keys(row).map(h => `"${normalizeHeader(h)}"`));
+    console.log('First row values:', row);
+  }
+
+  for (const [excelCol, rawValue] of Object.entries(row)) {
+    const normalized = normalizeHeader(excelCol);
+    const dbField = COLUMN_MAP[normalized];
+    if (!dbField) {
+      if (rowIndex === 0) console.log(`Unmapped header: "${excelCol}" -> "${normalized}"`);
+      continue;
+    }
+
+    const value = normalizeValue(dbField, rawValue);
+    if (value !== null) {
+      station[dbField] = value;
+    }
+  }
+
+  // Validate required field
+  const stationNo = station.station_no;
+
+  if (typeof stationNo !== 'string' || stationNo.trim() === '') {
+    console.warn(`Row ${rowIndex + 2}: skipped (missing station_no)`);
+    console.warn(`  Mapped fields:`, Object.keys(station));
+    console.warn(`  station.station_no value:`, station.station_no);
+    return null;
+  }
+
+  return station;
 }
 
 export default function Import() {
@@ -56,6 +192,23 @@ export default function Import() {
   const [result, setResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  function parseExcel(data: string): Record<string, unknown>[] {
+    const workbook = XLSX.read(data, {
+      type: 'binary',
+      // Force all cells to be read as strings to preserve leading zeros
+      raw: false,
+      cellText: true,
+    });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    // Use raw: false and defval to get string values
+    return XLSX.utils.sheet_to_json(sheet, {
+      raw: false, // Don't parse numbers, keep as formatted strings
+      defval: '', // Default value for empty cells
+    }) as Record<string, unknown>[];
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
@@ -63,40 +216,13 @@ export default function Import() {
     setFile(selectedFile);
     setResult(null);
 
-    // Parse Excel for preview
     const reader = new FileReader();
     reader.onload = (event) => {
-      const data = event.target?.result;
-      const workbook = XLSX.read(data, { type: 'binary' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const json = XLSX.utils.sheet_to_json(sheet);
-
-      // Show first 5 rows as preview
-      setPreview(json.slice(0, 5) as Record<string, unknown>[]);
+      const data = event.target?.result as string;
+      const rows = parseExcel(data);
+      setPreview(rows.slice(0, 5));
     };
     reader.readAsBinaryString(selectedFile);
-  }
-
-  function mapRowToStation(row: Record<string, unknown>) {
-    const station: Record<string, unknown> = {
-      is_active: true,
-      updated_at: new Date().toISOString(),
-    };
-
-    for (const [excelCol, value] of Object.entries(row)) {
-      const dbField = COLUMN_MAP[excelCol];
-      if (dbField && value !== undefined && value !== '') {
-        // Convert numbers for sales fields
-        if (dbField.startsWith('sales_day_')) {
-          station[dbField] = typeof value === 'number' ? value : parseFloat(String(value)) || null;
-        } else {
-          station[dbField] = String(value).trim();
-        }
-      }
-    }
-
-    return station;
   }
 
   async function handleImport() {
@@ -110,49 +236,74 @@ export default function Import() {
 
     try {
       // 1. Read and parse Excel
-      const reader = new FileReader();
       const data = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
         reader.onload = (e) => resolve(e.target?.result as string);
         reader.readAsBinaryString(file);
       });
 
-      const workbook = XLSX.read(data, { type: 'binary' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const rows = XLSX.utils.sheet_to_json(sheet) as Record<string, unknown>[];
+      const rows = parseExcel(data);
 
       if (rows.length === 0) {
         throw new Error('Excel file is empty');
       }
 
-      // 2. Mark all stations as inactive
+      // 2. Normalize all rows first
+      const stations: Record<string, unknown>[] = [];
+      for (let i = 0; i < rows.length; i++) {
+        const station = mapRowToStation(rows[i], i);
+        if (!station) {
+          errors.push(`Row ${i + 2}: Missing or invalid station_no`);
+          continue;
+        }
+        stations.push(station);
+      }
+
+      if (stations.length === 0) {
+        throw new Error('No valid stations found in Excel file');
+      }
+
+      // 3. Mark all existing stations as inactive
+      // Use tautological WHERE to satisfy PostgREST requirement
       const { error: deactivateError } = await supabase
         .from('stations')
         .update({ is_active: false, updated_at: new Date().toISOString() })
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Match all rows
+        .neq('id', '00000000-0000-0000-0000-000000000000');
 
       if (deactivateError) {
         throw new Error(`Failed to deactivate stations: ${deactivateError.message}`);
       }
+      // Count will be shown after import completes
 
-      // 3. Upsert each station
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        const station = mapRowToStation(row);
-
-        if (!station.station_no) {
-          errors.push(`Row ${i + 2}: Missing station_no`);
-          continue;
-        }
+      // 4. Upsert in batches of 100 for better performance
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < stations.length; i += BATCH_SIZE) {
+        const batch = stations.slice(i, i + BATCH_SIZE);
 
         const { error: upsertError } = await supabase
           .from('stations')
-          .upsert(station, { onConflict: 'station_no' });
+          .upsert(batch, {
+            onConflict: 'station_no',
+            ignoreDuplicates: false,
+          });
 
         if (upsertError) {
-          errors.push(`Row ${i + 2} (${station.station_no}): ${upsertError.message}`);
+          // If batch fails, try one by one to identify problematic rows
+          for (let j = 0; j < batch.length; j++) {
+            const station = batch[j];
+            const { error: singleError } = await supabase
+              .from('stations')
+              .upsert(station, { onConflict: 'station_no' });
+
+            if (singleError) {
+              const rowNum = i + j + 2; // +2 for header and 0-index
+              errors.push(`Row ${rowNum} (${station.station_no}): ${singleError.message}`);
+            } else {
+              imported++;
+            }
+          }
         } else {
-          imported++;
+          imported += batch.length;
         }
       }
 
@@ -185,8 +336,9 @@ export default function Import() {
     <div className="import-page">
       <h1>Import Stations</h1>
       <p className="import-description">
-        Upload an Excel file to update the stations database.
-        All existing stations will be marked as inactive, then the uploaded data will be imported.
+        Upload an Excel file to update the stations database. All existing
+        stations will be marked as inactive, then the uploaded data will be
+        imported.
       </p>
 
       {!result && (
@@ -239,16 +391,21 @@ export default function Import() {
 
       {result && (
         <div className={`import-result ${result.success ? 'success' : 'error'}`}>
-          <h3>{result.success ? 'Import Complete' : 'Import Completed with Errors'}</h3>
+          <h3>
+            {result.success ? 'Import Complete' : 'Import Completed with Errors'}
+          </h3>
           <p>{result.imported} stations imported successfully</p>
 
           {result.errors.length > 0 && (
             <div className="error-list">
               <h4>Errors ({result.errors.length})</h4>
               <ul>
-                {result.errors.map((err, i) => (
+                {result.errors.slice(0, 20).map((err, i) => (
                   <li key={i}>{err}</li>
                 ))}
+                {result.errors.length > 20 && (
+                  <li>... and {result.errors.length - 20} more errors</li>
+                )}
               </ul>
             </div>
           )}
