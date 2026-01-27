@@ -29,7 +29,11 @@ export default function Login() {
   }
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return (
+      <div className="loading loading-fullscreen">
+        <div className="spinner" />
+      </div>
+    );
   }
 
   return (

@@ -35,14 +35,20 @@ export default function StationProfile() {
   }
 
   if (loading) {
-    return <div className="loading">Loading station...</div>;
+    return (
+      <div className="loading">
+        <div className="spinner" />
+        <span>Загрузка...</span>
+      </div>
+    );
   }
 
   if (error || !station) {
     return (
       <div className="error-page">
-        <h2>Station not found</h2>
-        <Link to="/">Back to stations</Link>
+        <h2>Станция не найдена</h2>
+        <p>Станция не существует или неактивна.</p>
+        <Link to="/">← Назад к списку</Link>
       </div>
     );
   }

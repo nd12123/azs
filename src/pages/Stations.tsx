@@ -39,7 +39,12 @@ export default function Stations() {
   );
 
   if (loading) {
-    return <div className="loading">Loading stations...</div>;
+    return (
+      <div className="loading">
+        <div className="spinner" />
+        <span>Загрузка станций...</span>
+      </div>
+    );
   }
 
   if (error) {
@@ -51,7 +56,8 @@ export default function Stations() {
       <div className="search-bar">
         <input
           type="search"
-          placeholder="Search by station number..."
+          inputMode="numeric"
+          placeholder="Введите номер АЗС"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           autoFocus
@@ -82,7 +88,9 @@ export default function Stations() {
 
         {filtered.length === 0 && (
           <div className="no-results">
-            No stations found{search ? ` matching "${search}"` : ''}
+            {search
+              ? `По запросу "${search}" ничего не найдено`
+              : 'Станции не найдены'}
           </div>
         )}
       </div>

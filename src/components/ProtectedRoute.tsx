@@ -10,7 +10,11 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Props
   const { user, isAdmin, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading">Loading...</div>;
+    return (
+      <div className="loading loading-fullscreen">
+        <div className="spinner" />
+      </div>
+    );
   }
 
   // Not logged in - redirect to login

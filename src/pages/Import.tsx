@@ -228,6 +228,12 @@ export default function Import() {
   async function handleImport() {
     if (!file) return;
 
+    // Confirmation dialog before destructive action
+    const confirmed = window.confirm(
+      'Это действие деактивирует все существующие станции и заменит их данными из файла.\n\nПродолжить?'
+    );
+    if (!confirmed) return;
+
     setImporting(true);
     setResult(null);
 
@@ -382,8 +388,14 @@ export default function Import() {
                 disabled={importing}
                 className="import-btn"
               >
-                {importing ? 'Importing...' : 'Import All Data'}
+                {importing ? 'Импорт...' : 'Импортировать данные'}
               </button>
+              {importing && (
+                <div className="import-progress">
+                  <div className="spinner" />
+                  <span>Обработка данных, пожалуйста подождите...</span>
+                </div>
+              )}
             </div>
           )}
         </>
@@ -392,26 +404,35 @@ export default function Import() {
       {result && (
         <div className={`import-result ${result.success ? 'success' : 'error'}`}>
           <h3>
-            {result.success ? 'Import Complete' : 'Import Completed with Errors'}
+            {result.success
+              ? 'Импорт завершён'
+              : 'Импорт завершён с ошибками'}
           </h3>
-          <p>{result.imported} stations imported successfully</p>
+          <p>Импортировано станций: {result.imported}</p>
+
+          {result.imported === 0 && result.errors.length === 0 && (
+            <div className="warning-message">
+              Внимание: файл не содержит валидных данных для импорта.
+              Проверьте формат файла и названия колонок.
+            </div>
+          )}
 
           {result.errors.length > 0 && (
             <div className="error-list">
-              <h4>Errors ({result.errors.length})</h4>
+              <h4>Ошибки ({result.errors.length})</h4>
               <ul>
                 {result.errors.slice(0, 20).map((err, i) => (
                   <li key={i}>{err}</li>
                 ))}
                 {result.errors.length > 20 && (
-                  <li>... and {result.errors.length - 20} more errors</li>
+                  <li>... и ещё {result.errors.length - 20} ошибок</li>
                 )}
               </ul>
             </div>
           )}
 
           <button onClick={reset} className="reset-btn">
-            Import Another File
+            Импортировать другой файл
           </button>
         </div>
       )}
