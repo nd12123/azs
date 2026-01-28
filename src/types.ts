@@ -13,6 +13,8 @@ export interface Station {
   manager_phone: string | null;
   territory_manager_name: string | null;
   territory_manager_phone: string | null;
+  regional_manager_name: string | null;
+  regional_manager_phone: string | null;
   price_category: string | null;
   menu: string | null;
   sales_day_1: number | null;

@@ -3,11 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Station } from '../types';
 
+type Tab = 'overview' | 'contacts';
+
 export default function StationProfile() {
   const { stationNo } = useParams<{ stationNo: string }>();
   const [station, setStation] = useState<Station | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   useEffect(() => {
     if (stationNo) {
@@ -60,154 +63,262 @@ export default function StationProfile() {
 
   return (
     <div className="station-profile">
-      <Link to="/" className="back-link">&larr; Back to stations</Link>
+      <Link to="/" className="back-link">← Назад к списку</Link>
 
       <h1>{station.station_no}</h1>
       {station.npo && <div className="npo-badge">{station.npo}</div>}
 
-      <div className="profile-sections">
-        {/* Location */}
-        <section className="profile-section">
-          <h2>Location</h2>
-          {station.address && (
-            <div className="field">
-              <label>Address</label>
-              <div>
-                {station.address}
-                {mapsUrl && (
-                  <a
-                    href={mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="map-link"
-                  >
-                    Open in Maps
+      {/* Tabs */}
+      <div className="profile-tabs">
+        <button
+          className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          Обзор
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'contacts' ? 'active' : ''}`}
+          onClick={() => setActiveTab('contacts')}
+        >
+          Контакты
+        </button>
+      </div>
+
+      {/* Overview Tab */}
+      {activeTab === 'overview' && (
+        <div className="profile-sections">
+          {/* Location */}
+          <section className="profile-section">
+            <h2>Location</h2>
+            {station.address && (
+              <div className="field">
+                <label>Address</label>
+                <div>
+                  {station.address}
+                  {mapsUrl && (
+                    <a
+                      href={mapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="map-link"
+                    >
+                      Open in Maps
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+            {station.region && (
+              <div className="field">
+                <label>Region</label>
+                <div>{station.region}</div>
+              </div>
+            )}
+            {station.location_type && (
+              <div className="field">
+                <label>Location Type</label>
+                <div>{station.location_type}</div>
+              </div>
+            )}
+          </section>
+
+          {/* Contact */}
+          <section className="profile-section">
+            <h2>Station Contact</h2>
+            {station.station_phone && (
+              <div className="field">
+                <label>Phone</label>
+                <a href={`tel:${station.station_phone}`} className="phone-link">
+                  {station.station_phone}
+                </a>
+              </div>
+            )}
+            {station.station_email && (
+              <div className="field">
+                <label>Email</label>
+                <a href={`mailto:${station.station_email}`}>
+                  {station.station_email}
+                </a>
+              </div>
+            )}
+          </section>
+
+          {/* Manager */}
+          {(station.manager_name || station.manager_phone) && (
+            <section className="profile-section">
+              <h2>Manager</h2>
+              {station.manager_name && (
+                <div className="field">
+                  <label>Name</label>
+                  <div>{station.manager_name}</div>
+                </div>
+              )}
+              {station.manager_phone && (
+                <div className="field">
+                  <label>Phone</label>
+                  <a href={`tel:${station.manager_phone}`} className="phone-link">
+                    {station.manager_phone}
                   </a>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Territory Manager */}
+          {(station.territory_manager_name || station.territory_manager_phone) && (
+            <section className="profile-section">
+              <h2>Territory Manager</h2>
+              {station.territory_manager_name && (
+                <div className="field">
+                  <label>Name</label>
+                  <div>{station.territory_manager_name}</div>
+                </div>
+              )}
+              {station.territory_manager_phone && (
+                <div className="field">
+                  <label>Phone</label>
+                  <a href={`tel:${station.territory_manager_phone}`} className="phone-link">
+                    {station.territory_manager_phone}
+                  </a>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Regional Manager */}
+          {(station.regional_manager_name || station.regional_manager_phone) && (
+            <section className="profile-section">
+              <h2>Regional Manager</h2>
+              {station.regional_manager_name && (
+                <div className="field">
+                  <label>Name</label>
+                  <div>{station.regional_manager_name}</div>
+                </div>
+              )}
+              {station.regional_manager_phone && (
+                <div className="field">
+                  <label>Phone</label>
+                  <a href={`tel:${station.regional_manager_phone}`} className="phone-link">
+                    {station.regional_manager_phone}
+                  </a>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Business Info */}
+          <section className="profile-section">
+            <h2>Business Info</h2>
+            {station.price_category && (
+              <div className="field">
+                <label>Price Category</label>
+                <div>{station.price_category}</div>
+              </div>
+            )}
+            {station.menu && (
+              <div className="field">
+                <label>Menu</label>
+                <div>{station.menu}</div>
+              </div>
+            )}
+          </section>
+
+          {/* Sales */}
+          {(station.sales_day_1 || station.sales_day_2 || station.sales_day_3) && (
+            <section className="profile-section">
+              <h2>Coffee sales</h2>
+              <div className="sales-grid">
+                {station.sales_day_1 != null && (
+                  <div className="sales-item">
+                    <label>This month</label>
+                    <div>{station.sales_day_1.toLocaleString()}</div>
+                  </div>
+                )}
+                {station.sales_day_2 != null && (
+                  <div className="sales-item">
+                    <label>Last month</label>
+                    <div>{station.sales_day_2.toLocaleString()}</div>
+                  </div>
+                )}
+                {station.sales_day_3 != null && (
+                  <div className="sales-item">
+                    <label>2 months ago</label>
+                    <div>{station.sales_day_3.toLocaleString()}</div>
+                  </div>
                 )}
               </div>
-            </div>
+            </section>
           )}
-          {station.region && (
-            <div className="field">
-              <label>Region</label>
-              <div>{station.region}</div>
-            </div>
-          )}
-          {station.location_type && (
-            <div className="field">
-              <label>Location Type</label>
-              <div>{station.location_type}</div>
-            </div>
-          )}
-        </section>
+        </div>
+      )}
 
-        {/* Contact */}
-        <section className="profile-section">
-          <h2>Station Contact</h2>
+      {/* Contacts Tab */}
+      {activeTab === 'contacts' && (
+        <div className="contacts-phonebook">
+          {/* Station Phone */}
           {station.station_phone && (
-            <div className="field">
-              <label>Phone</label>
-              <a href={`tel:${station.station_phone}`} className="phone-link">
-                {station.station_phone}
+            <div className="contact-card">
+              <div className="contact-header">Телефон АЗС</div>
+              <div className="contact-phone">{station.station_phone}</div>
+              <a href={`tel:${station.station_phone}`} className="call-btn">
+                Позвонить
               </a>
             </div>
           )}
-          {station.station_email && (
-            <div className="field">
-              <label>Email</label>
-              <a href={`mailto:${station.station_email}`}>
-                {station.station_email}
+
+          {/* Manager */}
+          {station.manager_phone && (
+            <div className="contact-card">
+              <div className="contact-header">Менеджер АЗС</div>
+              {station.manager_name && (
+                <div className="contact-name">{station.manager_name}</div>
+              )}
+              <div className="contact-phone">{station.manager_phone}</div>
+              <a href={`tel:${station.manager_phone}`} className="call-btn">
+                Позвонить
               </a>
             </div>
           )}
-        </section>
 
-        {/* Manager */}
-        {(station.manager_name || station.manager_phone) && (
-          <section className="profile-section">
-            <h2>Manager</h2>
-            {station.manager_name && (
-              <div className="field">
-                <label>Name</label>
-                <div>{station.manager_name}</div>
-              </div>
-            )}
-            {station.manager_phone && (
-              <div className="field">
-                <label>Phone</label>
-                <a href={`tel:${station.manager_phone}`} className="phone-link">
-                  {station.manager_phone}
-                </a>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Territory Manager */}
-        {(station.territory_manager_name || station.territory_manager_phone) && (
-          <section className="profile-section">
-            <h2>Territory Manager</h2>
-            {station.territory_manager_name && (
-              <div className="field">
-                <label>Name</label>
-                <div>{station.territory_manager_name}</div>
-              </div>
-            )}
-            {station.territory_manager_phone && (
-              <div className="field">
-                <label>Phone</label>
-                <a href={`tel:${station.territory_manager_phone}`} className="phone-link">
-                  {station.territory_manager_phone}
-                </a>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* Business Info */}
-        <section className="profile-section">
-          <h2>Business Info</h2>
-          {station.price_category && (
-            <div className="field">
-              <label>Price Category</label>
-              <div>{station.price_category}</div>
+          {/* Territory Manager */}
+          {station.territory_manager_phone && (
+            <div className="contact-card">
+              <div className="contact-header">Территориальный менеджер</div>
+              {station.territory_manager_name && (
+                <div className="contact-name">{station.territory_manager_name}</div>
+              )}
+              <div className="contact-phone">{station.territory_manager_phone}</div>
+              <a href={`tel:${station.territory_manager_phone}`} className="call-btn">
+                Позвонить
+              </a>
             </div>
           )}
-          {station.menu && (
-            <div className="field">
-              <label>Menu</label>
-              <div>{station.menu}</div>
+
+          {/* Regional Manager */}
+          {station.regional_manager_phone && (
+            <div className="contact-card">
+              <div className="contact-header">Региональный менеджер</div>
+              {station.regional_manager_name && (
+                <div className="contact-name">{station.regional_manager_name}</div>
+              )}
+              <div className="contact-phone">{station.regional_manager_phone}</div>
+              <a href={`tel:${station.regional_manager_phone}`} className="call-btn">
+                Позвонить
+              </a>
             </div>
           )}
-        </section>
 
-        {/* Sales */}
-        {(station.sales_day_1 || station.sales_day_2 || station.sales_day_3) && (
-          <section className="profile-section">
-            <h2>Sales</h2>
-            <div className="sales-grid">
-              {station.sales_day_1 != null && (
-                <div className="sales-item">
-                  <label>Day 1</label>
-                  <div>{station.sales_day_1.toLocaleString()}</div>
-                </div>
-              )}
-              {station.sales_day_2 != null && (
-                <div className="sales-item">
-                  <label>Day 2</label>
-                  <div>{station.sales_day_2.toLocaleString()}</div>
-                </div>
-              )}
-              {station.sales_day_3 != null && (
-                <div className="sales-item">
-                  <label>Day 3</label>
-                  <div>{station.sales_day_3.toLocaleString()}</div>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-      </div>
+          {/* No contacts message */}
+          {!station.station_phone &&
+            !station.manager_phone &&
+            !station.territory_manager_phone &&
+            !station.regional_manager_phone && (
+              <div className="no-contacts">
+                Контактная информация отсутствует
+              </div>
+            )}
+        </div>
+      )}
     </div>
   );
 }

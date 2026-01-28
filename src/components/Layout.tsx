@@ -17,13 +17,14 @@ export default function Layout() {
           <Link to="/" className="logo">AZS Directory</Link>
         </div>
         <nav className="header-nav">
-          <Link to="/">Stations</Link>
-          {isAdmin && <Link to="/import">Import</Link>}
+          <Link to="/">Станции</Link>
+          {isAdmin && <Link to="/import">Импорт</Link>}
+          {isAdmin && <Link to="/admin/users">Пользователи</Link>}
         </nav>
         <div className="header-right">
           <span className="user-email">{user?.email}</span>
           <button onClick={handleSignOut} className="sign-out-btn">
-            Sign Out
+            Выйти
           </button>
         </div>
       </header>

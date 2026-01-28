@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Stations from './pages/Stations';
 import StationProfile from './pages/StationProfile';
 import Import from './pages/Import';
+import AdminUsers from './pages/AdminUsers';
 import './App.css';
 
 function App() {
@@ -27,12 +28,20 @@ function App() {
             <Route path="/" element={<Stations />} />
             <Route path="/station/:stationNo" element={<StationProfile />} />
 
-            {/* Admin-only route */}
+            {/* Admin-only routes */}
             <Route
               path="/import"
               element={
                 <ProtectedRoute requireAdmin>
                   <Import />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <AdminUsers />
                 </ProtectedRoute>
               }
             />

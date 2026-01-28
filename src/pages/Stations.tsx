@@ -17,19 +17,44 @@ export default function Stations() {
     setLoading(true);
     setError('');
 
-    // RLS ensures only active stations are returned for regular users
-    const { data, error } = await supabase
-      .from('stations')
-      .select('*')
-      .eq('is_active', true)
-      .order('station_no');
+    // PostgREST has a max limit of 1000 rows per request
+    // Fetch in batches to get up to 3000 rows total
+    const PAGE_SIZE = 1000;
+    const MAX_PAGES = 3;
+    const allStations: Station[] = [];
 
-    if (error) {
-      setError('Failed to load stations');
-      console.error(error);
-    } else {
-      setStations(data || []);
+    try {
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const from = page * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+
+        const { data, error } = await supabase
+          .from('stations')
+          .select('*')
+          .eq('is_active', true)
+          .order('station_no')
+          .range(from, to);
+
+        if (error) {
+          throw error;
+        }
+
+        if (data) {
+          allStations.push(...data);
+        }
+
+        // Stop if we got fewer than PAGE_SIZE (no more data)
+        if (!data || data.length < PAGE_SIZE) {
+          break;
+        }
+      }
+
+      setStations(allStations);
+    } catch (err) {
+      setError('Ошибка загрузки станций');
+      console.error(err);
     }
+
     setLoading(false);
   }
 
@@ -65,7 +90,7 @@ export default function Stations() {
       </div>
 
       <div className="stations-count">
-        {filtered.length} station{filtered.length !== 1 ? 's' : ''} found
+        Найдено станций: {filtered.length}
       </div>
 
       <div className="stations-list">
