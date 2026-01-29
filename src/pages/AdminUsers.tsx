@@ -21,7 +21,7 @@ export default function AdminUsers() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-admin-secret': import.meta.env.VITE_ADMIN_SECRET,
+            'x-admin-secret': import.meta.env.ADMIN_SECRET,
           },
           body: JSON.stringify({ email, password, role }),
         }
