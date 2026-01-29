@@ -3,14 +3,14 @@ import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Station } from '../types';
 
-type Tab = 'overview' | 'contacts';
+type Tab = 'bgn' | 'ff';
 
 export default function StationProfile() {
   const { stationNo } = useParams<{ stationNo: string }>();
   const [station, setStation] = useState<Station | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>('bgn');
 
   useEffect(() => {
     if (stationNo) {
@@ -65,260 +65,136 @@ export default function StationProfile() {
     <div className="station-profile">
       <Link to="/" className="back-link">← Назад к списку</Link>
 
+      {/* Header with station number and badge */}
       <h1>{station.station_no}</h1>
       {station.npo && <div className="npo-badge">{station.npo}</div>}
 
-      {/* Tabs */}
+      {/* Contact Info Block - Always visible on page load */}
+      <div className="contact-info-block">
+        {/* Address */}
+        {station.address && (
+          <div className="contact-row">
+            <span className="contact-label">Адрес</span>
+            <span className="contact-value">
+              {station.address}
+              {mapsUrl && (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="map-link"
+                >
+                  Карта
+                </a>
+              )}
+            </span>
+          </div>
+        )}
+
+        {/* Station Phone */}
+        {station.station_phone && (
+          <div className="contact-row">
+            <span className="contact-label">Телефон АЗС</span>
+            <a href={`tel:${station.station_phone}`} className="contact-value phone-link">
+              {station.station_phone}
+            </a>
+          </div>
+        )}
+
+        {/* Regional Manager */}
+        {station.regional_manager_name && (
+          <div className="contact-row">
+            <span className="contact-label">Рег. менеджер</span>
+            <span className="contact-value">{station.regional_manager_name}</span>
+          </div>
+        )}
+        {station.regional_manager_phone && (
+          <div className="contact-row">
+            <span className="contact-label">Тел. рег. менеджера</span>
+            <a href={`tel:${station.regional_manager_phone}`} className="contact-value phone-link">
+              {station.regional_manager_phone}
+            </a>
+          </div>
+        )}
+      </div>
+
+      {/* Tabs - БГН / ФФ */}
       <div className="profile-tabs">
         <button
-          className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
+          className={`tab-btn ${activeTab === 'bgn' ? 'active' : ''}`}
+          onClick={() => setActiveTab('bgn')}
         >
-          Обзор
+          БГН
         </button>
         <button
-          className={`tab-btn ${activeTab === 'contacts' ? 'active' : ''}`}
-          onClick={() => setActiveTab('contacts')}
+          className={`tab-btn ${activeTab === 'ff' ? 'active' : ''}`}
+          onClick={() => setActiveTab('ff')}
         >
-          Контакты
+          ФФ
         </button>
       </div>
 
-      {/* Overview Tab */}
-      {activeTab === 'overview' && (
-        <div className="profile-sections">
-          {/* Location */}
-          <section className="profile-section">
-            <h2>Location</h2>
-            {station.address && (
-              <div className="field">
-                <label>Address</label>
-                <div>
-                  {station.address}
-                  {mapsUrl && (
-                    <a
-                      href={mapsUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="map-link"
-                    >
-                      Open in Maps
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
-            {station.region && (
-              <div className="field">
-                <label>Region</label>
-                <div>{station.region}</div>
-              </div>
-            )}
-            {station.location_type && (
-              <div className="field">
-                <label>Location Type</label>
-                <div>{station.location_type}</div>
-              </div>
-            )}
-          </section>
+      {/* Tab Content - Lazy rendered */}
+      <div className="tab-content">
+        {activeTab === 'bgn' && <BgnTab station={station} />}
+        {activeTab === 'ff' && <FfTab />}
+      </div>
+    </div>
+  );
+}
 
-          {/* Contact */}
-          <section className="profile-section">
-            <h2>Station Contact</h2>
-            {station.station_phone && (
-              <div className="field">
-                <label>Phone</label>
-                <a href={`tel:${station.station_phone}`} className="phone-link">
-                  {station.station_phone}
-                </a>
-              </div>
-            )}
-            {station.station_email && (
-              <div className="field">
-                <label>Email</label>
-                <a href={`mailto:${station.station_email}`}>
-                  {station.station_email}
-                </a>
-              </div>
-            )}
-          </section>
-
-          {/* Manager */}
-          {(station.manager_name || station.manager_phone) && (
-            <section className="profile-section">
-              <h2>Manager</h2>
-              {station.manager_name && (
-                <div className="field">
-                  <label>Name</label>
-                  <div>{station.manager_name}</div>
-                </div>
-              )}
-              {station.manager_phone && (
-                <div className="field">
-                  <label>Phone</label>
-                  <a href={`tel:${station.manager_phone}`} className="phone-link">
-                    {station.manager_phone}
-                  </a>
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* Territory Manager */}
-          {(station.territory_manager_name || station.territory_manager_phone) && (
-            <section className="profile-section">
-              <h2>Territory Manager</h2>
-              {station.territory_manager_name && (
-                <div className="field">
-                  <label>Name</label>
-                  <div>{station.territory_manager_name}</div>
-                </div>
-              )}
-              {station.territory_manager_phone && (
-                <div className="field">
-                  <label>Phone</label>
-                  <a href={`tel:${station.territory_manager_phone}`} className="phone-link">
-                    {station.territory_manager_phone}
-                  </a>
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* Regional Manager */}
-          {(station.regional_manager_name || station.regional_manager_phone) && (
-            <section className="profile-section">
-              <h2>Regional Manager</h2>
-              {station.regional_manager_name && (
-                <div className="field">
-                  <label>Name</label>
-                  <div>{station.regional_manager_name}</div>
-                </div>
-              )}
-              {station.regional_manager_phone && (
-                <div className="field">
-                  <label>Phone</label>
-                  <a href={`tel:${station.regional_manager_phone}`} className="phone-link">
-                    {station.regional_manager_phone}
-                  </a>
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* Business Info */}
-          <section className="profile-section">
-            <h2>Business Info</h2>
-            {station.price_category && (
-              <div className="field">
-                <label>Price Category</label>
-                <div>{station.price_category}</div>
-              </div>
-            )}
-            {station.menu && (
-              <div className="field">
-                <label>Menu</label>
-                <div>{station.menu}</div>
-              </div>
-            )}
-          </section>
-
-          {/* Sales */}
-          {(station.sales_day_1 || station.sales_day_2 || station.sales_day_3) && (
-            <section className="profile-section">
-              <h2>Coffee sales</h2>
-              <div className="sales-grid">
-                {station.sales_day_1 != null && (
-                  <div className="sales-item">
-                    <label>This month</label>
-                    <div>{station.sales_day_1.toLocaleString()}</div>
-                  </div>
-                )}
-                {station.sales_day_2 != null && (
-                  <div className="sales-item">
-                    <label>Last month</label>
-                    <div>{station.sales_day_2.toLocaleString()}</div>
-                  </div>
-                )}
-                {station.sales_day_3 != null && (
-                  <div className="sales-item">
-                    <label>2 months ago</label>
-                    <div>{station.sales_day_3.toLocaleString()}</div>
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
+// БГН Tab Component
+function BgnTab({ station }: { station: Station }) {
+  return (
+    <div className="bgn-tab">
+      <div className="data-grid">
+        {/* Price Category */}
+        <div className="data-item">
+          <span className="data-label">Ценовая категория БГН</span>
+          <span className="data-value">{station.price_category || '—'}</span>
         </div>
-      )}
 
-      {/* Contacts Tab */}
-      {activeTab === 'contacts' && (
-        <div className="contacts-phonebook">
-          {/* Station Phone */}
-          {station.station_phone && (
-            <div className="contact-card">
-              <div className="contact-header">Телефон АЗС</div>
-              <div className="contact-phone">{station.station_phone}</div>
-              <a href={`tel:${station.station_phone}`} className="call-btn">
-                Позвонить
-              </a>
-            </div>
-          )}
-
-          {/* Manager */}
-          {station.manager_phone && (
-            <div className="contact-card">
-              <div className="contact-header">Менеджер АЗС</div>
-              {station.manager_name && (
-                <div className="contact-name">{station.manager_name}</div>
-              )}
-              <div className="contact-phone">{station.manager_phone}</div>
-              <a href={`tel:${station.manager_phone}`} className="call-btn">
-                Позвонить
-              </a>
-            </div>
-          )}
-
-          {/* Territory Manager */}
-          {station.territory_manager_phone && (
-            <div className="contact-card">
-              <div className="contact-header">Территориальный менеджер</div>
-              {station.territory_manager_name && (
-                <div className="contact-name">{station.territory_manager_name}</div>
-              )}
-              <div className="contact-phone">{station.territory_manager_phone}</div>
-              <a href={`tel:${station.territory_manager_phone}`} className="call-btn">
-                Позвонить
-              </a>
-            </div>
-          )}
-
-          {/* Regional Manager */}
-          {station.regional_manager_phone && (
-            <div className="contact-card">
-              <div className="contact-header">Региональный менеджер</div>
-              {station.regional_manager_name && (
-                <div className="contact-name">{station.regional_manager_name}</div>
-              )}
-              <div className="contact-phone">{station.regional_manager_phone}</div>
-              <a href={`tel:${station.regional_manager_phone}`} className="call-btn">
-                Позвонить
-              </a>
-            </div>
-          )}
-
-          {/* No contacts message */}
-          {!station.station_phone &&
-            !station.manager_phone &&
-            !station.territory_manager_phone &&
-            !station.regional_manager_phone && (
-              <div className="no-contacts">
-                Контактная информация отсутствует
-              </div>
-            )}
+        {/* Menu (Petronics) */}
+        <div className="data-item">
+          <span className="data-label">Действующее меню (Petronics)</span>
+          <span className="data-value">{station.menu || '—'}</span>
         </div>
-      )}
+
+        {/* Sales - Current Month */}
+        <div className="data-item">
+          <span className="data-label">Реализация — текущий месяц</span>
+          <span className="data-value">
+            {station.sales_day_1 != null ? station.sales_day_1.toLocaleString() : '—'}
+          </span>
+        </div>
+
+        {/* Sales - Previous Month */}
+        <div className="data-item">
+          <span className="data-label">Реализация — предыдущий месяц</span>
+          <span className="data-value">
+            {station.sales_day_2 != null ? station.sales_day_2.toLocaleString() : '—'}
+          </span>
+        </div>
+
+        {/* Sales - Previous Quarter */}
+        <div className="data-item">
+          <span className="data-label">Реализация — предыдущий квартал</span>
+          <span className="data-value">
+            {station.sales_day_3 != null ? station.sales_day_3.toLocaleString() : '—'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ФФ Tab Component (Placeholder)
+function FfTab() {
+  return (
+    <div className="ff-tab">
+      <div className="placeholder-message">
+        Данные будут добавлены позже
+      </div>
     </div>
   );
 }
