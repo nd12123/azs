@@ -25,9 +25,12 @@ export default async function handler(req: any, res: any) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 
-  // Check if user has admin role (stored in user_metadata during creation)
-  const userRole = user.user_metadata?.role;
-  if (userRole !== 'admin') {
+  // Check if user has admin role (check both app_metadata and user_metadata)
+  const isAdmin =
+    user.app_metadata?.role === 'admin' ||
+    user.user_metadata?.role === 'admin';
+
+  if (!isAdmin) {
     return res.status(403).json({ error: 'Forbidden: admin access required' });
   }
 
