@@ -10,12 +10,25 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const headerSecret = req.headers['x-admin-secret'];
-  const secret =
-    Array.isArray(headerSecret) ? headerSecret[0] : headerSecret;
+  // Extract JWT from Authorization header
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.replace('Bearer ', '');
 
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Forbidden' });
+  if (!token) {
+    return res.status(401).json({ error: 'Missing authorization token' });
+  }
+
+  // Verify the JWT and get user info
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+
+  // Check if user has admin role (stored in user_metadata during creation)
+  const userRole = user.user_metadata?.role;
+  if (userRole !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden: admin access required' });
   }
 
   const { email, password, role } = req.body;

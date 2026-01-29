@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 export default function AdminUsers() {
   const [email, setEmail] = useState('');
@@ -15,11 +16,18 @@ export default function AdminUsers() {
     setError('');
 
     try {
+      // Get current user's session token
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error('Не авторизован');
+      }
+
       const res = await fetch('/api/admin/create-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-secret': 'admin-ui',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ email, password, role }),
       });
