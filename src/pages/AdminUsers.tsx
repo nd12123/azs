@@ -15,17 +15,14 @@ export default function AdminUsers() {
     setError('');
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-secret': import.meta.env.ADMIN_SECRET,
-          },
-          body: JSON.stringify({ email, password, role }),
-        }
-      );
+      const res = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': 'admin-ui',
+        },
+        body: JSON.stringify({ email, password, role }),
+      });
 
       const data = await res.json();
 
