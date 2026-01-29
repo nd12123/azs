@@ -10,8 +10,11 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Simple shared secret check
-  if (req.headers['x-admin-secret'] !== process.env.ADMIN_SECRET) {
+  const headerSecret = req.headers['x-admin-secret'];
+  const secret =
+    Array.isArray(headerSecret) ? headerSecret[0] : headerSecret;
+
+  if (!secret || secret !== process.env.ADMIN_SECRET) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
