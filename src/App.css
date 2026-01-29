@@ -234,6 +234,98 @@ input {
   background: var(--gray-100);
 }
 
+/* ===== MOBILE NAVIGATION ===== */
+.mobile-menu-container {
+  display: none;
+  position: relative;
+}
+
+.mobile-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 22px;
+  height: 22px;
+}
+
+.hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--gray-700);
+  border-radius: 1px;
+  transition: all 0.2s ease;
+}
+
+.hamburger.open span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.hamburger.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.open span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+.mobile-nav-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 160px;
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.mobile-nav-link {
+  display: block;
+  padding: 14px 16px;
+  color: var(--gray-700);
+  font-weight: 500;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.mobile-nav-link:last-child {
+  border-bottom: none;
+}
+
+.mobile-nav-link:hover {
+  background: var(--gray-50);
+  text-decoration: none;
+}
+
+.mobile-nav-link:active {
+  background: var(--gray-100);
+}
+
+/* Mobile: Show hamburger, hide desktop nav */
+@media (max-width: 640px) {
+  .header-nav-desktop {
+    display: none;
+  }
+
+  .mobile-menu-container {
+    display: block;
+  }
+}
+
 .app-main {
   flex: 1;
   padding: 20px;
@@ -1043,8 +1135,24 @@ input {
   background: var(--primary-dark);
 }
 
+/* Filter Overlay (mobile only) */
+.filter-overlay {
+  display: none;
+}
+
 /* Mobile: Bottom Sheet style for filters */
 @media (max-width: 640px) {
+  .filter-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 199;
+  }
+
   .filter-popover {
     position: fixed;
     top: auto;

@@ -36,6 +36,19 @@ export default function Stations() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showFilters]);
 
+  // Lock body scroll when filter popover is open on mobile
+  useEffect(() => {
+    const isMobile = window.matchMedia('(max-width: 640px)').matches;
+    if (showFilters && isMobile) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showFilters]);
+
   async function loadStations() {
     setLoading(true);
     setError('');
@@ -195,6 +208,8 @@ export default function Stations() {
 
           {/* Filter Popover / Bottom Sheet */}
           {showFilters && (
+            <>
+            <div className="filter-overlay" onClick={() => setShowFilters(false)} />
             <div className="filter-popover">
               <div className="filter-header">
                 <span className="filter-title">Фильтры</span>
@@ -258,6 +273,7 @@ export default function Stations() {
                 </label>
               </div>
             </div>
+            </>
           )}
         </div>
       </div>
