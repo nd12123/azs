@@ -15,7 +15,7 @@ export default function Stations() {
   const [selectedRegion, setSelectedRegion] = useState<string[]>([]);
   const [selectedLocationType, setSelectedLocationType] = useState<string[]>([]);
   const [selectedRegionalManager, setSelectedRegionalManager] = useState<string[]>([]);
-  const [lukCafeFilter, setLukCafeFilter] = useState(false);
+  const [lukCafeFilter, setLukCafeFilter] = useState(true); // Enabled by default
   const [placeholderFilter, setPlaceholderFilter] = useState(false);
 
   const filterRef = useRef<HTMLDivElement>(null);
