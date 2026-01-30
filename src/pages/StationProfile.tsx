@@ -65,9 +65,27 @@ export default function StationProfile() {
     <div className="station-profile">
       <Link to="/" className="back-link">← Назад к списку</Link>
 
-      {/* Header with station number and badge */}
-      <h1>{station.station_no}</h1>
-      {station.npo && <div className="npo-badge">{station.npo}</div>}
+      {/* Header row with station number and tabs */}
+      <div className="station-header-row">
+        <div className="station-header-left">
+          <h1>{station.station_no}</h1>
+          {station.npo && <div className="npo-badge">{station.npo}</div>}
+        </div>
+        <div className="profile-tabs-inline">
+          <button
+            className={`tab-btn-inline ${activeTab === 'bgn' ? 'active' : ''}`}
+            onClick={() => setActiveTab('bgn')}
+          >
+            БГН
+          </button>
+          <button
+            className={`tab-btn-inline ${activeTab === 'ff' ? 'active' : ''}`}
+            onClick={() => setActiveTab('ff')}
+          >
+            ФФ
+          </button>
+        </div>
+      </div>
 
       {/* Contact Info Block - Always visible on page load */}
       <div className="contact-info-block">
@@ -118,20 +136,28 @@ export default function StationProfile() {
         )}
       </div>
 
-      {/* Tabs - БГН / ФФ */}
-      <div className="profile-tabs">
-        <button
-          className={`tab-btn ${activeTab === 'bgn' ? 'active' : ''}`}
-          onClick={() => setActiveTab('bgn')}
-        >
-          БГН
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'ff' ? 'active' : ''}`}
-          onClick={() => setActiveTab('ff')}
-        >
-          ФФ
-        </button>
+      {/* Sales Data - Реализация (moved here per client request) */}
+      <div className="sales-block">
+        <div className="sales-grid">
+          <div className="sales-item">
+            <span className="sales-label">Реализация — текущий месяц</span>
+            <span className="sales-value">
+              {station.sales_day_1 != null ? station.sales_day_1.toLocaleString() : '—'}
+            </span>
+          </div>
+          <div className="sales-item">
+            <span className="sales-label">Реализация — пред. месяц</span>
+            <span className="sales-value">
+              {station.sales_day_2 != null ? station.sales_day_2.toLocaleString() : '—'}
+            </span>
+          </div>
+          <div className="sales-item">
+            <span className="sales-label">Реализация — пред. квартал</span>
+            <span className="sales-value">
+              {station.sales_day_3 != null ? station.sales_day_3.toLocaleString() : '—'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Tab Content - Lazy rendered */}
@@ -160,28 +186,10 @@ function BgnTab({ station }: { station: Station }) {
           <span className="data-value">{station.menu || '—'}</span>
         </div>
 
-        {/* Sales - Current Month */}
+        {/* LukCafe */}
         <div className="data-item">
-          <span className="data-label">Реализация — текущий месяц</span>
-          <span className="data-value">
-            {station.sales_day_1 != null ? station.sales_day_1.toLocaleString() : '—'}
-          </span>
-        </div>
-
-        {/* Sales - Previous Month */}
-        <div className="data-item">
-          <span className="data-label">Реализация — предыдущий месяц</span>
-          <span className="data-value">
-            {station.sales_day_2 != null ? station.sales_day_2.toLocaleString() : '—'}
-          </span>
-        </div>
-
-        {/* Sales - Previous Quarter */}
-        <div className="data-item">
-          <span className="data-label">Реализация — предыдущий квартал</span>
-          <span className="data-value">
-            {station.sales_day_3 != null ? station.sales_day_3.toLocaleString() : '—'}
-          </span>
+          <span className="data-label">LukCafe</span>
+          <span className="data-value">{station.luk_cafe ? 'Да' : '—'}</span>
         </div>
       </div>
     </div>

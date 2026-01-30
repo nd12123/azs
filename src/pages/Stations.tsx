@@ -15,6 +15,7 @@ export default function Stations() {
   const [selectedRegion, setSelectedRegion] = useState<string[]>([]);
   const [selectedLocationType, setSelectedLocationType] = useState<string[]>([]);
   const [selectedRegionalManager, setSelectedRegionalManager] = useState<string[]>([]);
+  const [lukCafeFilter, setLukCafeFilter] = useState(false);
   const [placeholderFilter, setPlaceholderFilter] = useState(false);
 
   const filterRef = useRef<HTMLDivElement>(null);
@@ -36,17 +37,25 @@ export default function Stations() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showFilters]);
 
-  // Lock body scroll when filter popover is open on mobile
+  // Lock body scroll when filter popover is open on mobile (iOS Safari compatible)
   useEffect(() => {
     const isMobile = window.matchMedia('(max-width: 640px)').matches;
     if (showFilters && isMobile) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
       document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+      return () => {
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, scrollY);
+      };
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
   }, [showFilters]);
 
   async function loadStations() {
@@ -141,12 +150,17 @@ export default function Stations() {
         return false;
       }
 
+      // LukCafe filter
+      if (lukCafeFilter && !s.luk_cafe) {
+        return false;
+      }
+
       return true;
     });
-  }, [stations, search, selectedNpo, selectedRegion, selectedLocationType, selectedRegionalManager]);
+  }, [stations, search, selectedNpo, selectedRegion, selectedLocationType, selectedRegionalManager, lukCafeFilter]);
 
   // Check if any filters are active
-  const hasActiveFilters = selectedNpo.length > 0 || selectedRegion.length > 0 || selectedLocationType.length > 0 || selectedRegionalManager.length > 0;
+  const hasActiveFilters = selectedNpo.length > 0 || selectedRegion.length > 0 || selectedLocationType.length > 0 || selectedRegionalManager.length > 0 || lukCafeFilter;
 
   // Toggle chip selection
   function toggleChip(value: string, selected: string[], setSelected: (v: string[]) => void) {
@@ -163,6 +177,7 @@ export default function Stations() {
     setSelectedRegion([]);
     setSelectedLocationType([]);
     setSelectedRegionalManager([]);
+    setLukCafeFilter(false);
     setPlaceholderFilter(false);
   }
 
@@ -260,9 +275,17 @@ export default function Stations() {
                 />
               )}
 
-              {/* Placeholder Filter */}
+              {/* Boolean Filters */}
               <div className="filter-section">
                 <div className="filter-section-title">Фильтр по признаку</div>
+                <label className="placeholder-filter">
+                  <input
+                    type="checkbox"
+                    checked={lukCafeFilter}
+                    onChange={(e) => setLukCafeFilter(e.target.checked)}
+                  />
+                  <span>LukCafe</span>
+                </label>
                 <label className="placeholder-filter">
                   <input
                     type="checkbox"
@@ -301,6 +324,11 @@ export default function Stations() {
               {v} ×
             </span>
           ))}
+          {lukCafeFilter && (
+            <span className="active-chip" onClick={() => setLukCafeFilter(false)}>
+              LukCafe ×
+            </span>
+          )}
         </div>
       )}
 

@@ -20,6 +20,7 @@ export interface Station {
   sales_day_1: number | null;
   sales_day_2: number | null;
   sales_day_3: number | null;
+  luk_cafe: boolean | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

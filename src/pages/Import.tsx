@@ -105,6 +105,15 @@ const COLUMN_MAP: Record<string, string> = {
   'sales_day_3': 'sales_day_3',
   'sales day 3': 'sales_day_3',
   'реализация в день 3': 'sales_day_3',
+
+  // luk_cafe
+  'luk_cafe': 'luk_cafe',
+  'luk cafe': 'luk_cafe',
+  'lukcafe': 'luk_cafe',
+  'лук кафе': 'luk_cafe',
+  'луккафе': 'luk_cafe',
+  'признак lukcafe': 'luk_cafe',
+  'признак luk cafe': 'luk_cafe',
 };
 
 // Fields that should always be treated as text (preserve leading zeros)
@@ -118,6 +127,47 @@ const TEXT_FIELDS = new Set([
 // Fields that should be numeric
 const NUMERIC_FIELDS = new Set(['sales_day_1', 'sales_day_2', 'sales_day_3']);
 
+// Fields that should be boolean
+const BOOLEAN_FIELDS = new Set(['luk_cafe']);
+
+/**
+ * Parse Excel cell value to boolean for luk_cafe and similar fields.
+ * - "X", "x", "✓", "да", "yes", "true", 1 → true
+ * - "", null, undefined, "нет", "no", "false", 0 → false
+ *
+ * This is explicit conversion, not relying on JS truthiness.
+ */
+function parseBooleanField(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+
+  if (typeof value === 'number') {
+    return value === 1;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  let str = String(value).trim().toLowerCase();
+
+  if (str === '') return false;
+
+  // Normalize Cyrillic "х" → Latin "x"
+  str = str.replace(/х/g, 'x'); // IMPORTANT: Cyrillic char
+
+  const truthyValues = new Set([
+    'x',
+    '✓',
+    '✔',
+    'да',
+    'yes',
+    'true',
+    '1',
+  ]);
+
+  return truthyValues.has(str);
+}
+
 interface ImportResult {
   success: boolean;
   imported: number;
@@ -125,6 +175,12 @@ interface ImportResult {
 }
 
 function normalizeValue(dbField: string, value: unknown): unknown {
+  // Boolean fields - must be handled BEFORE null check
+  // because empty string should become false, not null
+  if (BOOLEAN_FIELDS.has(dbField)) {
+    return parseBooleanField(value);
+  }
+
   // Handle null/undefined/empty
   if (value === null || value === undefined || value === '') {
     return null;
@@ -170,6 +226,11 @@ function mapRowToStation(row: Record<string, unknown>, rowIndex: number): Record
     if (value !== null) {
       station[dbField] = value;
     }
+  }
+
+  // Ensure boolean fields have explicit values (default to false if missing)
+  if (station.luk_cafe === undefined) {
+    station.luk_cafe = false;
   }
 
   // Validate required field

@@ -425,6 +425,52 @@ input {
 
 .station-profile h1 {
   font-size: 1.75rem;
+  margin: 0;
+}
+
+/* Station header row with tabs */
+.station-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.station-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-tabs-inline {
+  display: flex;
+  gap: 4px;
+  background: var(--gray-100);
+  padding: 4px;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+
+.tab-btn-inline {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--gray-500);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn-inline:hover {
+  color: var(--gray-700);
+}
+
+.tab-btn-inline.active {
+  background: white;
+  color: var(--primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .npo-badge {
@@ -941,6 +987,56 @@ input {
   color: var(--gray-900);
 }
 
+/* 2-column layout for data-grid on desktop */
+@media (min-width: 640px) {
+  .bgn-tab .data-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+/* Sales Block (Реализация) */
+.sales-block {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+
+.sales-block .sales-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .sales-block .sales-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+}
+
+.sales-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sales-label {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sales-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
 /* ФФ Tab */
 .ff-tab .placeholder-message {
   background: var(--gray-100);
@@ -1095,7 +1191,7 @@ input {
   color: white;
 }
 
-/* Placeholder Filter */
+/* Boolean Filters (checkboxes) */
 .placeholder-filter {
   display: flex;
   align-items: center;
@@ -1103,6 +1199,11 @@ input {
   font-size: 0.875rem;
   color: var(--gray-600);
   cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.placeholder-filter:last-child {
+  margin-bottom: 0;
 }
 
 .placeholder-filter input[type="checkbox"] {
