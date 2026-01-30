@@ -186,11 +186,12 @@ function BgnTab({ station }: { station: Station }) {
           <span className="data-value">{station.menu || '—'}</span>
         </div>
 
-        {/* LukCafe */}
+        {/* LukCafe 
         <div className="data-item">
           <span className="data-label">LukCafe</span>
           <span className="data-value">{station.luk_cafe ? 'Да' : '—'}</span>
         </div>
+        */}
       </div>
     </div>
   );
