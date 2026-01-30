@@ -1278,18 +1278,24 @@ input {
   }
 
   .filter-header {
-    padding: 20px 16px 16px;
+    padding: 24px 16px 16px;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .filter-header:active {
+    cursor: grabbing;
   }
 
   .filter-header::before {
     content: '';
     position: absolute;
-    top: 8px;
+    top: 10px;
     left: 50%;
     transform: translateX(-50%);
-    width: 40px;
-    height: 4px;
+    width: 48px;
+    height: 5px;
     background: var(--gray-300);
-    border-radius: 2px;
+    border-radius: 3px;
   }
 }

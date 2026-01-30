@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import type { Station } from '../types';
@@ -16,9 +16,44 @@ export default function Stations() {
   const [selectedLocationType, setSelectedLocationType] = useState<string[]>([]);
   const [selectedRegionalManager, setSelectedRegionalManager] = useState<string[]>([]);
   const [lukCafeFilter, setLukCafeFilter] = useState(false);
-  //const [placeholderFilter, setPlaceholderFilter] = useState(false);
 
   const filterRef = useRef<HTMLDivElement>(null);
+  const filterPopoverRef = useRef<HTMLDivElement>(null);
+  const touchStartY = useRef<number>(0);
+  const touchCurrentY = useRef<number>(0);
+
+  // Swipe-to-close handler for mobile filter sheet
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchCurrentY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    touchCurrentY.current = e.touches[0].clientY;
+    const diff = touchCurrentY.current - touchStartY.current;
+
+    // Only allow dragging down, and only from the header area
+    if (diff > 0 && filterPopoverRef.current) {
+      filterPopoverRef.current.style.transform = `translateY(${diff}px)`;
+      filterPopoverRef.current.style.transition = 'none';
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    const diff = touchCurrentY.current - touchStartY.current;
+
+    if (filterPopoverRef.current) {
+      filterPopoverRef.current.style.transition = 'transform 0.25s ease-out';
+
+      // If swiped down more than 80px, close the filter
+      if (diff > 80) {
+        filterPopoverRef.current.style.transform = 'translateY(100%)';
+        setTimeout(() => setShowFilters(false), 250);
+      } else {
+        filterPopoverRef.current.style.transform = 'translateY(0)';
+      }
+    }
+  }, []);
 
   useEffect(() => {
     loadStations();
@@ -226,8 +261,13 @@ export default function Stations() {
           {showFilters && (
             <>
             <div className="filter-overlay" onClick={() => setShowFilters(false)} />
-            <div className="filter-popover">
-              <div className="filter-header">
+            <div className="filter-popover" ref={filterPopoverRef}>
+              <div
+                className="filter-header"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+              >
                 <span className="filter-title">Фильтры</span>
                 {hasActiveFilters && (
                   <button className="clear-filters-btn" onClick={clearFilters}>
