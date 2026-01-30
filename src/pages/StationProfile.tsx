@@ -136,7 +136,20 @@ export default function StationProfile() {
         )}
       </div>
 
-      {/* Sales Data - Реализация (moved here per client request) */}
+      {/* Tab Content - Lazy rendered */}
+      <div className="tab-content">
+        {activeTab === 'bgn' && <BgnTab station={station} />}
+        {activeTab === 'ff' && <FfTab station={station} />}
+      </div>
+    </div>
+  );
+}
+
+// БГН Tab Component
+function BgnTab({ station }: { station: Station }) {
+  return (
+    <div className="bgn-tab">
+      {/* Sales Data - БГН */}
       <div className="sales-block">
         <div className="sales-grid">
           <div className="sales-item">
@@ -160,19 +173,6 @@ export default function StationProfile() {
         </div>
       </div>
 
-      {/* Tab Content - Lazy rendered */}
-      <div className="tab-content">
-        {activeTab === 'bgn' && <BgnTab station={station} />}
-        {activeTab === 'ff' && <FfTab />}
-      </div>
-    </div>
-  );
-}
-
-// БГН Tab Component
-function BgnTab({ station }: { station: Station }) {
-  return (
-    <div className="bgn-tab">
       <div className="data-grid">
         {/* Price Category */}
         <div className="data-item">
@@ -185,24 +185,36 @@ function BgnTab({ station }: { station: Station }) {
           <span className="data-label">Действующее меню (Petronics)</span>
           <span className="data-value">{station.menu || '—'}</span>
         </div>
-
-        {/* LukCafe 
-        <div className="data-item">
-          <span className="data-label">LukCafe</span>
-          <span className="data-value">{station.luk_cafe ? 'Да' : '—'}</span>
-        </div>
-        */}
       </div>
     </div>
   );
 }
 
-// ФФ Tab Component (Placeholder)
-function FfTab() {
+// ФФ Tab Component
+function FfTab({ station: _station }: { station: Station }) {
+  // TODO: Replace zeros with proper formula when provided (will use _station data)
+  const ffSales1 = 0;
+  const ffSales2 = 0;
+  const ffSales3 = 0;
+
   return (
     <div className="ff-tab">
-      <div className="placeholder-message">
-        Данные будут добавлены позже
+      {/* Sales Data - ФФ (zeros for now, formula TBD) */}
+      <div className="sales-block">
+        <div className="sales-grid">
+          <div className="sales-item">
+            <span className="sales-label">Реализация — текущий месяц</span>
+            <span className="sales-value">{ffSales1.toLocaleString()}</span>
+          </div>
+          <div className="sales-item">
+            <span className="sales-label">Реализация — пред. месяц</span>
+            <span className="sales-value">{ffSales2.toLocaleString()}</span>
+          </div>
+          <div className="sales-item">
+            <span className="sales-label">Реализация — пред. квартал</span>
+            <span className="sales-value">{ffSales3.toLocaleString()}</span>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1002,6 +1002,7 @@ input {
   border: 1px solid var(--gray-200);
   border-radius: var(--radius);
   padding: 16px 20px;
+  margin-bottom: 16px;
 }
 
 .sales-block .sales-grid {
