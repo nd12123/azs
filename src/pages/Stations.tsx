@@ -16,7 +16,7 @@ export default function Stations() {
   const [selectedLocationType, setSelectedLocationType] = useState<string[]>([]);
   const [selectedRegionalManager, setSelectedRegionalManager] = useState<string[]>([]);
   const [lukCafeFilter, setLukCafeFilter] = useState(false);
-  const [placeholderFilter, setPlaceholderFilter] = useState(false);
+  //const [placeholderFilter, setPlaceholderFilter] = useState(false);
 
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -179,7 +179,7 @@ export default function Stations() {
     setSelectedRegion([]);
     setSelectedLocationType([]);
     setSelectedRegionalManager([]);
-    setPlaceholderFilter(false);
+    //setPlaceholderFilter(false);
   }
 
   if (loading) {
@@ -259,7 +259,7 @@ export default function Stations() {
                 </label> */
                 }
               </div>
-              
+
               {/* NPO Filter */}
               {filterOptions.npo.length > 0 && (
                 <FilterSection
