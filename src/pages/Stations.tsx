@@ -15,7 +15,7 @@ export default function Stations() {
   const [selectedRegion, setSelectedRegion] = useState<string[]>([]);
   const [selectedLocationType, setSelectedLocationType] = useState<string[]>([]);
   const [selectedRegionalManager, setSelectedRegionalManager] = useState<string[]>([]);
-  const [lukCafeFilter, setLukCafeFilter] = useState(true); // Enabled by default
+  const [lukCafeFilter, setLukCafeFilter] = useState(false);
   const [placeholderFilter, setPlaceholderFilter] = useState(false);
 
   const filterRef = useRef<HTMLDivElement>(null);
@@ -129,6 +129,11 @@ export default function Stations() {
       if (search && !s.station_no.toLowerCase().includes(search.toLowerCase())) {
         return false;
       }
+      
+      // LukCafe filter
+      if (lukCafeFilter && !s.luk_cafe) {
+        return false;
+      }
 
       // NPO filter
       if (selectedNpo.length > 0 && (!s.npo || !selectedNpo.includes(s.npo))) {
@@ -150,10 +155,6 @@ export default function Stations() {
         return false;
       }
 
-      // LukCafe filter
-      if (lukCafeFilter && !s.luk_cafe) {
-        return false;
-      }
 
       return true;
     });
@@ -173,11 +174,11 @@ export default function Stations() {
 
   // Clear all filters
   function clearFilters() {
+    setLukCafeFilter(false);
     setSelectedNpo([]);
     setSelectedRegion([]);
     setSelectedLocationType([]);
     setSelectedRegionalManager([]);
-    setLukCafeFilter(false);
     setPlaceholderFilter(false);
   }
 
@@ -235,6 +236,30 @@ export default function Stations() {
                 )}
               </div>
 
+              {/* Boolean Filters */}
+              <div className="filter-section">
+                <div className="filter-section-title">Фильтр по признаку</div>
+                <label className="placeholder-filter">
+                  <input
+                    type="checkbox"
+                    checked={lukCafeFilter}
+                    onChange={(e) => setLukCafeFilter(e.target.checked)}
+                  />
+                  <span>LukCafe</span>
+                </label>
+                {
+                  /**
+                <label className="placeholder-filter">
+                  <input
+                    type="checkbox"
+                    checked={placeholderFilter}
+                    onChange={(e) => setPlaceholderFilter(e.target.checked)}
+                  />
+                  <span>Включить (в разработке)</span>
+                </label> */
+                }
+              </div>
+              
               {/* NPO Filter */}
               {filterOptions.npo.length > 0 && (
                 <FilterSection
@@ -275,26 +300,6 @@ export default function Stations() {
                 />
               )}
 
-              {/* Boolean Filters */}
-              <div className="filter-section">
-                <div className="filter-section-title">Фильтр по признаку</div>
-                <label className="placeholder-filter">
-                  <input
-                    type="checkbox"
-                    checked={lukCafeFilter}
-                    onChange={(e) => setLukCafeFilter(e.target.checked)}
-                  />
-                  <span>LukCafe</span>
-                </label>
-                <label className="placeholder-filter">
-                  <input
-                    type="checkbox"
-                    checked={placeholderFilter}
-                    onChange={(e) => setPlaceholderFilter(e.target.checked)}
-                  />
-                  <span>Включить (в разработке)</span>
-                </label>
-              </div>
             </div>
             </>
           )}
