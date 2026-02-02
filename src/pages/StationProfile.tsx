@@ -5,6 +5,15 @@ import type { Station } from '../types';
 
 type Tab = 'bgn' | 'ff';
 
+// Helper to check if a value is valid (not null, empty, or placeholder like "отсутствует")
+function isValidValue(value: string | null | undefined): value is string {
+  if (value === null || value === undefined) return false;
+  const v = value.trim().toLowerCase();
+  // Filter out empty and common "missing" placeholders
+  const invalidValues = ['', '-', '--', 'отсутствует', 'нет', 'n/a', 'na', 'none'];
+  return !invalidValues.includes(v);
+}
+
 export default function StationProfile() {
   const { stationNo } = useParams<{ stationNo: string }>();
   const [station, setStation] = useState<Station | null>(null);
@@ -87,53 +96,71 @@ export default function StationProfile() {
         </div>
       </div>
 
-      {/* Contact Info Block - Always visible on page load */}
-      <div className="contact-info-block">
-        {/* Address */}
-        {station.address && (
-          <div className="contact-row">
-            <span className="contact-label">Адрес</span>
-            <span className="contact-value">
-              {station.address}
-              {mapsUrl && (
-                <a
-                  href={mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="map-link"
-                >
-                  Карта
-                </a>
+      {/* Address Block */}
+      {station.address && (
+        <div className="address-block">
+          <span className="address-label">Адрес</span>
+          <span className="address-value">
+            {station.address}
+            {mapsUrl && (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="map-link"
+              >
+                Карта
+              </a>
+            )}
+          </span>
+        </div>
+      )}
+
+      {/* Phones Block - 4 sections, same style as sales-block */}
+      <div className="phones-block">
+        <div className="phones-grid">
+          {isValidValue(station.station_phone) && (
+            <div className="phone-item">
+              <span className="phone-label">Телефон АЗС</span>
+              <a href={`tel:${station.station_phone}`} className="phone-value">
+                {station.station_phone}
+              </a>
+            </div>
+          )}
+          {isValidValue(station.manager_phone) && (
+            <div className="phone-item">
+              <span className="phone-label">Менеджер АЗС</span>
+              {isValidValue(station.manager_name) && (
+                <span className="phone-name">{station.manager_name}</span>
               )}
-            </span>
-          </div>
-        )}
-
-        {/* Station Phone */}
-        {station.station_phone && (
-          <div className="contact-row">
-            <span className="contact-label">Телефон АЗС</span>
-            <a href={`tel:${station.station_phone}`} className="contact-value phone-link">
-              {station.station_phone}
-            </a>
-          </div>
-        )}
-
-        {/* Regional Manager */}
-        {station.regional_manager_name && (
-          <div className="contact-row">
-            <span className="contact-label">Рег. менеджер</span>
-            <span className="contact-value">{station.regional_manager_name}</span>
-          </div>
-        )}
-        {station.regional_manager_phone && (
-          <div className="contact-row">
-            <span className="contact-label">Тел. рег. менеджера</span>
-            <a href={`tel:${station.regional_manager_phone}`} className="contact-value phone-link">
-              {station.regional_manager_phone}
-            </a>
-          </div>
-        )}
+              <a href={`tel:${station.manager_phone}`} className="phone-value">
+                {station.manager_phone}
+              </a>
+            </div>
+          )}
+          {isValidValue(station.territory_manager_phone) && (
+            <div className="phone-item">
+              <span className="phone-label">Терр. менеджер</span>
+              {isValidValue(station.territory_manager_name) && (
+                <span className="phone-name">{station.territory_manager_name}</span>
+              )}
+              <a href={`tel:${station.territory_manager_phone}`} className="phone-value">
+                {station.territory_manager_phone}
+              </a>
+            </div>
+          )}
+          {isValidValue(station.regional_manager_phone) && (
+            <div className="phone-item">
+              <span className="phone-label">Рег. менеджер</span>
+              {isValidValue(station.regional_manager_name) && (
+                <span className="phone-name">{station.regional_manager_name}</span>
+              )}
+              <a href={`tel:${station.regional_manager_phone}`} className="phone-value">
+                {station.regional_manager_phone}
+              </a>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tab Content - Lazy rendered */}

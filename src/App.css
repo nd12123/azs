@@ -1038,6 +1038,79 @@ input {
   color: var(--gray-900);
 }
 
+/* Address Block */
+.address-block {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.address-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.address-value {
+  font-size: 1rem;
+  color: var(--gray-900);
+}
+
+/* Phones Block */
+.phones-block {
+  background: white;
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.phones-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 639px) {
+  .phones-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.phone-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.phone-label {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.phone-name {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+}
+
+.phone-value {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.phone-value:not(a) {
+  color: var(--gray-400);
+}
+
 /* ФФ Tab */
 .ff-tab .placeholder-message {
   background: var(--gray-100);
