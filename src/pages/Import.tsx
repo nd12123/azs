@@ -80,6 +80,25 @@ const COLUMN_MAP: Record<string, string> = {
   'territory manager phone': 'territory_manager_phone',
   'телефон территориального менеджера': 'territory_manager_phone',
 
+  // regional_manager_name
+  'regional_manager_name': 'regional_manager_name',
+  'regional manager name': 'regional_manager_name',
+  'regional manager': 'regional_manager_name',
+  'региональный менеджер фио': 'regional_manager_name',
+  'региональный менеджер': 'regional_manager_name',
+  'региональный управляющий': 'regional_manager_name',
+  'рег. менеджер': 'regional_manager_name',
+  'рег менеджер': 'regional_manager_name',
+
+  // regional_manager_phone
+  'regional_manager_phone': 'regional_manager_phone',
+  'regional manager phone': 'regional_manager_phone',
+  'телефон регионального менеджера': 'regional_manager_phone',
+  'телефон регионального управляющего': 'regional_manager_phone',
+  'телефон рег. менеджера': 'regional_manager_phone',
+  'тел. рег. менеджера': 'regional_manager_phone',
+  'тел рег менеджера': 'regional_manager_phone',
+
   // price_category
   'price_category': 'price_category',
   'price category': 'price_category',
@@ -95,16 +114,19 @@ const COLUMN_MAP: Record<string, string> = {
   'sales_day_1': 'sales_day_1',
   'sales day 1': 'sales_day_1',
   'реализация в день 1': 'sales_day_1',
+  'реализация текущий месяц': 'sales_day_1',
 
   // sales_day_2
   'sales_day_2': 'sales_day_2',
   'sales day 2': 'sales_day_2',
   'реализация в день 2': 'sales_day_2',
+  'реализация предыдущий месяц': 'sales_day_2',
 
   // sales_day_3
   'sales_day_3': 'sales_day_3',
   'sales day 3': 'sales_day_3',
   'реализация в день 3': 'sales_day_3',
+  'реализация предыдущий квартал': 'sales_day_3',
 
   // luk_cafe
   'luk_cafe': 'luk_cafe',
@@ -122,6 +144,7 @@ const TEXT_FIELDS = new Set([
   'station_phone',
   'manager_phone',
   'territory_manager_phone',
+  'regional_manager_phone',
 ]);
 
 // Fields that should be numeric
