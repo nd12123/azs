@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { fetchStation } from '../lib/stationsApi';
+import { STATION_FAILED_MESSAGE, toFailure, type AppFailure } from '../lib/failures';
+import RecoveryNotice from '../components/RecoveryNotice';
 import type { Station } from '../types';
 
 type Tab = 'bgn' | 'ff';
@@ -18,44 +20,75 @@ export default function StationProfile() {
   const { stationNo } = useParams<{ stationNo: string }>();
   const [station, setStation] = useState<Station | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [missing, setMissing] = useState(false);
+  const [failure, setFailure] = useState<AppFailure | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>('bgn');
+  const [loadedNo, setLoadedNo] = useState(stationNo);
+
+  if (stationNo !== loadedNo) {
+    setLoadedNo(stationNo);
+    setLoading(true);
+    setMissing(false);
+    setFailure(null);
+    setStation(null);
+  }
 
   useEffect(() => {
-    if (stationNo) {
-      loadStation(stationNo);
-    }
-  }, [stationNo]);
+    if (!stationNo) return;
+    const controller = new AbortController();
+    let active = true;
 
-  async function loadStation(no: string) {
-    setLoading(true);
-    setError('');
+    fetchStation(stationNo, controller.signal)
+      .then((result) => {
+        if (!active) return;
+        if (result.status === 'found') setStation(result.station);
+        if (result.status === 'missing') setMissing(true);
+        if (result.status === 'error') setFailure(result.failure);
+        setLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        const next = toFailure(error, 'stations.detail', 'read');
+        if (next.category === 'aborted') return;
+        setFailure(next);
+        setLoading(false);
+      });
 
-    const { data, error } = await supabase
-      .from('stations')
-      .select('*')
-      .eq('station_no', no)
-      .eq('is_active', true)
-      .single();
-
-    if (error) {
-      setError('Station not found');
-    } else {
-      setStation(data);
-    }
-    setLoading(false);
-  }
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [stationNo, retryCount]);
 
   if (loading) {
     return (
-      <div className="loading">
+      <div className="loading" role="status" aria-live="polite">
         <div className="spinner" />
         <span>Загрузка...</span>
       </div>
     );
   }
 
-  if (error || !station) {
+  if (failure) {
+    return (
+      <div className="recovery-screen">
+        <RecoveryNotice
+          message={failure.userMessage || STATION_FAILED_MESSAGE}
+          detail={failure.detail}
+          onRetry={() => {
+            setLoading(true);
+            setFailure(null);
+            setMissing(false);
+            setRetryCount((count) => count + 1);
+          }}
+        />
+        <Link to="/">← Назад к списку</Link>
+      </div>
+    );
+  }
+
+  if (missing || !station) {
     return (
       <div className="error-page">
         <h2>Станция не найдена</h2>
@@ -218,8 +251,9 @@ function BgnTab({ station }: { station: Station }) {
 }
 
 // ФФ Tab Component
-function FfTab({ station: _station }: { station: Station }) {
-  // TODO: Replace zeros with proper formula when provided (will use _station data)
+function FfTab({ station }: { station: Station }) {
+  // TODO: Replace zeros with proper formula when provided (will use station data)
+  void station;
   const ffSales1 = 0;
   const ffSales2 = 0;
   const ffSales3 = 0;

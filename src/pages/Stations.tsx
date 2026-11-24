@@ -1,13 +1,15 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import type { Station } from '../types';
+import { fetchAllActiveStations, type StationListItem } from '../lib/stationsApi';
+import { STATIONS_FAILED_MESSAGE, toFailure, type AppFailure } from '../lib/failures';
+import RecoveryNotice from '../components/RecoveryNotice';
 
 export default function Stations() {
-  const [stations, setStations] = useState<Station[]>([]);
+  const [stations, setStations] = useState<StationListItem[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<AppFailure | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Filter state
   const [showFilters, setShowFilters] = useState(false);
@@ -56,8 +58,28 @@ export default function Stations() {
   }, []);
 
   useEffect(() => {
-    loadStations();
-  }, []);
+    const controller = new AbortController();
+    let active = true;
+
+    fetchAllActiveStations(controller.signal)
+      .then((rows) => {
+        if (!active) return;
+        setStations(rows);
+        setLoading(false);
+      })
+      .catch((error: unknown) => {
+        if (!active) return;
+        const next = toFailure(error, 'stations.list', 'read');
+        if (next.category === 'aborted') return;
+        setFailure(next);
+        setLoading(false);
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [retryCount]);
 
   // Close filter popover when clicking outside
   useEffect(() => {
@@ -92,48 +114,6 @@ export default function Stations() {
       };
     }
   }, [showFilters]);
-
-  async function loadStations() {
-    setLoading(true);
-    setError('');
-
-    const PAGE_SIZE = 1000;
-    const MAX_PAGES = 3;
-    const allStations: Station[] = [];
-
-    try {
-      for (let page = 0; page < MAX_PAGES; page++) {
-        const from = page * PAGE_SIZE;
-        const to = from + PAGE_SIZE - 1;
-
-        const { data, error } = await supabase
-          .from('stations')
-          .select('*')
-          .eq('is_active', true)
-          .order('station_no')
-          .range(from, to);
-
-        if (error) {
-          throw error;
-        }
-
-        if (data) {
-          allStations.push(...data);
-        }
-
-        if (!data || data.length < PAGE_SIZE) {
-          break;
-        }
-      }
-
-      setStations(allStations);
-    } catch (err) {
-      setError('Ошибка загрузки станций');
-      console.error(err);
-    }
-
-    setLoading(false);
-  }
 
   // Extract unique filter values from stations
   const filterOptions = useMemo(() => {
@@ -217,21 +197,52 @@ export default function Stations() {
     //setPlaceholderFilter(false);
   }
 
-  if (loading) {
+  if (loading && stations.length === 0) {
     return (
-      <div className="loading">
+      <div className="loading" role="status" aria-live="polite">
         <div className="spinner" />
         <span>Загрузка станций...</span>
       </div>
     );
   }
 
-  if (error) {
-    return <div className="error-message">{error}</div>;
+  if (failure && stations.length === 0) {
+    return (
+      <div className="recovery-screen">
+        <RecoveryNotice
+          message={failure.category === 'incomplete' ? failure.userMessage : failure.userMessage || STATIONS_FAILED_MESSAGE}
+          detail={failure.detail}
+          onRetry={() => {
+            setLoading(true);
+            setFailure(null);
+            setRetryCount((count) => count + 1);
+          }}
+          pending={loading}
+        />
+      </div>
+    );
   }
 
   return (
     <div className="stations-page">
+      {loading && (
+        <div className="loading loading-inline" role="status" aria-live="polite">
+          <div className="spinner" />
+          <span>Повторное соединение...</span>
+        </div>
+      )}
+      {failure && (
+        <RecoveryNotice
+          message={failure.userMessage || STATIONS_FAILED_MESSAGE}
+          detail={failure.detail}
+          onRetry={() => {
+            setLoading(true);
+            setFailure(null);
+            setRetryCount((count) => count + 1);
+          }}
+          pending={loading}
+        />
+      )}
       {/* Search bar with filter button */}
       <div className="search-filter-row">
         <div className="search-bar">

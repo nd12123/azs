@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../lib/supabase';
+import { AppFailure, isDefiniteWriteRejection, settleWriteFailure, toFailure, WRITE_UNKNOWN_MESSAGE, type AppFailure as Failure } from '../lib/failures';
 
 // Normalize header: trim, collapse whitespace, lowercase
 function normalizeHeader(header: string): string {
@@ -195,6 +196,40 @@ interface ImportResult {
   success: boolean;
   imported: number;
   errors: string[];
+  uncertain: boolean;
+}
+
+function readFile(file: File, signal: AbortSignal): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    const fail = (message: string) => reject(new AppFailure({
+      category: 'file',
+      outcome: 'failed',
+      operation: 'import.read',
+      userMessage: message,
+    }));
+    const onAbort = () => {
+      reader.abort();
+    };
+    if (signal.aborted) {
+      fail('Чтение файла отменено.');
+      return;
+    }
+    signal.addEventListener('abort', onAbort, { once: true });
+    reader.onload = () => {
+      signal.removeEventListener('abort', onAbort);
+      resolve(typeof reader.result === 'string' ? reader.result : '');
+    };
+    reader.onerror = () => {
+      signal.removeEventListener('abort', onAbort);
+      fail('Не удалось прочитать файл.');
+    };
+    reader.onabort = () => {
+      signal.removeEventListener('abort', onAbort);
+      fail('Чтение файла отменено.');
+    };
+    reader.readAsBinaryString(file);
+  });
 }
 
 function normalizeValue(dbField: string, value: unknown): unknown {
@@ -224,26 +259,16 @@ function normalizeValue(dbField: string, value: unknown): unknown {
   return String(value).trim();
 }
 
-function mapRowToStation(row: Record<string, unknown>, rowIndex: number): Record<string, unknown> | null {
+function mapRowToStation(row: Record<string, unknown>): Record<string, unknown> | null {
   const station: Record<string, unknown> = {
     is_active: true,
     updated_at: new Date().toISOString(),
   };
 
-  // Debug: log headers on first row
-  if (rowIndex === 0) {
-    console.log('Excel headers:', Object.keys(row));
-    console.log('Normalized headers:', Object.keys(row).map(h => `"${normalizeHeader(h)}"`));
-    console.log('First row values:', row);
-  }
-
   for (const [excelCol, rawValue] of Object.entries(row)) {
     const normalized = normalizeHeader(excelCol);
     const dbField = COLUMN_MAP[normalized];
-    if (!dbField) {
-      if (rowIndex === 0) console.log(`Unmapped header: "${excelCol}" -> "${normalized}"`);
-      continue;
-    }
+    if (!dbField) continue;
 
     const value = normalizeValue(dbField, rawValue);
     if (value !== null) {
@@ -260,9 +285,6 @@ function mapRowToStation(row: Record<string, unknown>, rowIndex: number): Record
   const stationNo = station.station_no;
 
   if (typeof stationNo !== 'string' || stationNo.trim() === '') {
-    console.warn(`Row ${rowIndex + 2}: skipped (missing station_no)`);
-    console.warn(`  Mapped fields:`, Object.keys(station));
-    console.warn(`  station.station_no value:`, station.station_no);
     return null;
   }
 
@@ -274,7 +296,11 @@ export default function Import() {
   const [preview, setPreview] = useState<Record<string, unknown>[]>([]);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+  const [readError, setReadError] = useState<Failure | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const readAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => readAbortRef.current?.abort(), []);
 
   function parseExcel(data: string): Record<string, unknown>[] {
     const workbook = XLSX.read(data, {
@@ -297,22 +323,32 @@ export default function Import() {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
+    readAbortRef.current?.abort();
+    const controller = new AbortController();
+    readAbortRef.current = controller;
     setFile(selectedFile);
     setResult(null);
+    setReadError(null);
+    setPreview([]);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const data = event.target?.result as string;
-      const rows = parseExcel(data);
-      setPreview(rows.slice(0, 5));
-    };
-    reader.readAsBinaryString(selectedFile);
+    readFile(selectedFile, controller.signal)
+      .then((data) => {
+        if (controller.signal.aborted) return;
+        try {
+          setPreview(parseExcel(data).slice(0, 5));
+        } catch {
+          setReadError(toFailure(new Error('file'), 'import.read', 'read'));
+        }
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setReadError(toFailure(error, 'import.read', 'read'));
+      });
   }
 
   async function handleImport() {
-    if (!file) return;
+    if (!file || importing) return;
 
-    // Confirmation dialog before destructive action
     const confirmed = window.confirm(
       'Это действие деактивирует все существующие станции и заменит их данными из файла.\n\nПродолжить?'
     );
@@ -320,103 +356,108 @@ export default function Import() {
 
     setImporting(true);
     setResult(null);
-
+    const controller = new AbortController();
     const errors: string[] = [];
     let imported = 0;
+    let deactivated = false;
 
     try {
-      // 1. Read and parse Excel
-      const data = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.readAsBinaryString(file);
-      });
-
+      const data = await readFile(file, controller.signal);
       const rows = parseExcel(data);
+      if (rows.length === 0) throw new Error('Файл не содержит строк.');
 
-      if (rows.length === 0) {
-        throw new Error('Excel file is empty');
-      }
-
-      // 2. Normalize all rows first
       const stations: Record<string, unknown>[] = [];
       for (let i = 0; i < rows.length; i++) {
-        const station = mapRowToStation(rows[i], i);
+        const station = mapRowToStation(rows[i]);
         if (!station) {
-          errors.push(`Row ${i + 2}: Missing or invalid station_no`);
+          errors.push(`Строка ${i + 2}: нет номера АЗС`);
           continue;
         }
         stations.push(station);
       }
+      if (stations.length === 0) throw new Error('В файле нет станций с номером.');
 
-      if (stations.length === 0) {
-        throw new Error('No valid stations found in Excel file');
-      }
-
-      // 3. Mark all existing stations as inactive
-      // Use tautological WHERE to satisfy PostgREST requirement
-      const { error: deactivateError } = await supabase
+      // Not atomic: deactivation is a separate request from the upserts.
+      // A lost response after this point can leave stations inactive while
+      // only some file rows were written. A single database function would
+      // be required to do both in one transaction. Do not retry a write
+      // whose HTTP result was lost.
+      const { error: deactivateError, status: deactivateStatus } = await supabase
         .from('stations')
         .update({ is_active: false, updated_at: new Date().toISOString() })
-        .neq('id', '00000000-0000-0000-0000-000000000000');
+        .neq('id', '00000000-0000-0000-0000-000000000000')
+        .abortSignal(controller.signal);
 
       if (deactivateError) {
-        throw new Error(`Failed to deactivate stations: ${deactivateError.message}`);
+        throw toFailure({ ...deactivateError, status: deactivateStatus }, 'import.deactivate', 'write');
       }
-      // Count will be shown after import completes
+      deactivated = true;
 
-      // 4. Upsert in batches of 100 for better performance
       const BATCH_SIZE = 100;
       for (let i = 0; i < stations.length; i += BATCH_SIZE) {
         const batch = stations.slice(i, i + BATCH_SIZE);
-
-        const { error: upsertError } = await supabase
+        const { error: upsertError, status: upsertStatus } = await supabase
           .from('stations')
-          .upsert(batch, {
-            onConflict: 'station_no',
-            ignoreDuplicates: false,
-          });
+          .upsert(batch, { onConflict: 'station_no', ignoreDuplicates: false })
+          .abortSignal(controller.signal);
 
-        if (upsertError) {
-          // If batch fails, try one by one to identify problematic rows
-          for (let j = 0; j < batch.length; j++) {
-            const station = batch[j];
-            const { error: singleError } = await supabase
-              .from('stations')
-              .upsert(station, { onConflict: 'station_no' });
-
-            if (singleError) {
-              const rowNum = i + j + 2; // +2 for header and 0-index
-              errors.push(`Row ${rowNum} (${station.station_no}): ${singleError.message}`);
-            } else {
-              imported++;
-            }
-          }
-        } else {
+        if (!upsertError) {
           imported += batch.length;
+          continue;
+        }
+
+        const failure = toFailure({ ...upsertError, status: upsertStatus }, 'import.upsert', 'write');
+        if (failure.category === 'aborted' || !isDefiniteWriteRejection(upsertStatus, upsertError.code)) {
+          // Only a Postgres data/integrity rejection proves the batch rolled
+          // back. Gateway, 5xx, and unreadable responses may already have
+          // committed, so they must not be repeated row by row.
+          throw failure.category === 'aborted' ? failure : settleWriteFailure(failure, upsertStatus);
+        }
+
+        for (let j = 0; j < batch.length; j++) {
+          const station = batch[j];
+          const { error: singleError, status: singleStatus } = await supabase
+            .from('stations')
+            .upsert(station, { onConflict: 'station_no' })
+            .abortSignal(controller.signal);
+          if (singleError) {
+            const singleFailure = toFailure({ ...singleError, status: singleStatus }, 'import.upsert', 'write');
+            if (singleFailure.category === 'aborted' || !isDefiniteWriteRejection(singleStatus, singleError.code)) {
+              throw singleFailure.category === 'aborted' ? singleFailure : settleWriteFailure(singleFailure, singleStatus);
+            }
+            errors.push(`Строка ${i + j + 2} (${String(station.station_no)}): не записана`);
+          } else {
+            imported++;
+          }
         }
       }
 
-      setResult({
-        success: errors.length === 0,
-        imported,
-        errors,
-      });
+      setResult({ success: errors.length === 0, imported, errors, uncertain: false });
     } catch (err) {
+      const failure = toFailure(err, 'import.write', 'write');
+      const uncertain = failure.outcome === 'unknown' || (deactivated && failure.category === 'timeout');
       setResult({
         success: false,
-        imported: 0,
-        errors: [err instanceof Error ? err.message : 'Unknown error'],
+        imported,
+        uncertain,
+        errors: [
+          uncertain
+            ? `${WRITE_UNKNOWN_MESSAGE} Импорт не атомарен: станции могли быть деактивированы до завершения записи.`
+            : failure.userMessage,
+          ...errors,
+        ],
       });
+    } finally {
+      setImporting(false);
     }
-
-    setImporting(false);
   }
 
   function reset() {
+    readAbortRef.current?.abort();
     setFile(null);
     setPreview([]);
     setResult(null);
+    setReadError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -442,6 +483,13 @@ export default function Import() {
               disabled={importing}
             />
           </div>
+
+          {readError && (
+            <div className="error-message" role="alert">
+              <p>{readError.userMessage}</p>
+              <p className="error-detail">{readError.detail}</p>
+            </div>
+          )}
 
           {preview.length > 0 && (
             <div className="preview">
@@ -493,6 +541,11 @@ export default function Import() {
               : 'Импорт завершён с ошибками'}
           </h3>
           <p>Импортировано станций: {result.imported}</p>
+          {result.uncertain && (
+            <div className="warning-message" role="alert">
+              Результат части запросов неизвестен. Не запускайте импорт повторно, пока не проверите список станций.
+            </div>
+          )}
 
           {result.imported === 0 && result.errors.length === 0 && (
             <div className="warning-message">

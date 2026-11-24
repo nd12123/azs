@@ -86,6 +86,61 @@ input {
   margin: 16px 0;
 }
 
+.error-detail {
+  color: var(--gray-700);
+  font-size: 0.85rem;
+  margin-top: 6px;
+  word-break: break-word;
+}
+
+.recovery-notice button,
+.sign-out-banner button {
+  margin-top: 12px;
+  background: white;
+  color: var(--gray-900);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+}
+
+.recovery-screen {
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  gap: 12px;
+}
+
+.recovery-screen .error-message {
+  width: 100%;
+  max-width: 440px;
+}
+
+.connectivity-hint,
+.sign-out-banner {
+  padding: 0 16px;
+}
+
+.connectivity-hint {
+  background: #fff7ed;
+  color: #9a3412;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+}
+
+.loading-inline {
+  min-height: 0;
+  flex-direction: row;
+  margin-bottom: 8px;
+}
+
+.loading-inline .spinner {
+  width: 18px;
+  height: 18px;
+}
+
 /* ===== LOGIN PAGE ===== */
 .login-page {
   min-height: 100vh;

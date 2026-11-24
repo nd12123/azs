@@ -1,17 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext'
+import { ConnectivityHint } from './ConnectivityHint'
+import RecoveryNotice from './RecoveryNotice';
 
 export default function Layout() {
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, signOut, signOutError } = useAuth()
+  const [signingOut, setSigningOut] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   async function handleSignOut() {
-    await signOut();
-    navigate('/login');
+    setSigningOut(true)
+    try {
+      const { ok } = await signOut()
+      if (ok) navigate('/login')
+    } finally {
+      setSigningOut(false)
+    }
   }
 
   // Close mobile menu on route change
@@ -73,11 +81,17 @@ export default function Layout() {
 
         <div className="header-right">
           <span className="user-email">{user?.email}</span>
-          <button onClick={handleSignOut} className="sign-out-btn">
-            Выйти
+          <button onClick={handleSignOut} className="sign-out-btn" disabled={signingOut}>
+            {signingOut ? 'Выход...' : 'Выйти'}
           </button>
         </div>
       </header>
+      <ConnectivityHint />
+      {signOutError && (
+        <div className="sign-out-banner">
+          <RecoveryNotice message={signOutError.userMessage} detail={signOutError.detail} />
+        </div>
+      )}
       <main className="app-main">
         <Outlet />
       </main>
