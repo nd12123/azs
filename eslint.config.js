@@ -6,9 +6,9 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'server.mjs', 'test-results', 'playwright-report', 'blob-report']),
   {
-    files: ['api/**/*.ts'],
+    files: ['api/**/*.ts', 'server/**/*.ts'],
     languageOptions: {
       globals: globals.node,
     },

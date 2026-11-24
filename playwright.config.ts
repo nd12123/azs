@@ -21,7 +21,7 @@ export default defineConfig({
     },
   },
   projects: [
-    { name: 'logic', testMatch: /logic\.spec\.ts/ },
+    { name: 'logic', testMatch: /(?:logic|server)\.spec\.ts/ },
     {
       name: 'chromium',
       testMatch: /resilience\.spec\.ts/,

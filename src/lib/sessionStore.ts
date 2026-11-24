@@ -1,4 +1,5 @@
 import type { Session } from '@supabase/supabase-js'
+import { readPublicSupabaseConfig } from './publicConfig'
 
 /** Same margin auth-js uses before it refreshes an access token (3 × 30s). */
 export const SESSION_EXPIRY_MARGIN_MS = 90_000
@@ -12,9 +13,7 @@ export function readStoredSession(
   storage: Storage | undefined = globalThis.localStorage,
   supabaseUrl?: string,
 ): Session | null {
-  const url =
-    supabaseUrl ??
-    (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_SUPABASE_URL
+  const url = supabaseUrl ?? readPublicSupabaseConfig().url
   if (!url || !storage) return null
   try {
     const raw = storage.getItem(authStorageKey(url))
