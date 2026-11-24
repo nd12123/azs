@@ -16,13 +16,19 @@ RUN if [ -e .env ] || [ -e .env.local ] || [ -e .env.production ]; then echo "en
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+# App Platform may replace the image health check with a shell HTTP probe.
+# The slim Node image has neither client; keep both available at runtime.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl wget \
+  && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server.mjs ./server.mjs
 USER node
 EXPOSE 8080
-# No HEALTHCHECK. Timeweb treats one as the deploy gate and left the
-# container at "starting" for the whole 180s window after /health had
-# already returned 200. The panel path /health accepts a single 2xx.
+# The panel path overrides this check. This fallback is independently
+# usable on Docker hosts and fails promptly with a useful curl error.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl --fail --silent --show-error --noproxy '*' --max-time 3 http://127.0.0.1:${PORT:-8080}/health || exit 1
 CMD ["node", "server.mjs"]
