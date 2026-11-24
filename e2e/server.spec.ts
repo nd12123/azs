@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import http from 'node:http'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -82,6 +83,13 @@ test.describe('production server', () => {
     expect(health.status).toBe(200)
     expect(await health.json()).toEqual({ status: 'ok' })
     expect(health.headers.get('cache-control')).toContain('no-store')
+    const connection = await new Promise<string | undefined>((resolve, reject) => {
+      http.get(`${server.url}/health`, (res) => {
+        res.resume()
+        res.on('end', () => resolve(res.headers.connection))
+      }).on('error', reject)
+    })
+    expect(connection).toBe('close')
 
     const login = await fetch(`${server.url}/login`)
     expect(login.status).toBe(200)
@@ -248,6 +256,7 @@ test('the image build does not accept the service-role key', async () => {
   const dockerfile = await readFile(new URL('../Dockerfile', import.meta.url), 'utf8')
   const ignored = await readFile(new URL('../.dockerignore', import.meta.url), 'utf8')
   expect(dockerfile).toContain('EXPOSE 8080')
+  expect(dockerfile).not.toMatch(/^HEALTHCHECK\b/m)
   expect(dockerfile).not.toMatch(/ARG\s+SUPABASE_SERVICE_ROLE_KEY/)
   expect(dockerfile).not.toMatch(/ENV\s+SUPABASE_SERVICE_ROLE_KEY/)
   expect(dockerfile).not.toMatch(/VITE_/)

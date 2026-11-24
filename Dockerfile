@@ -22,6 +22,7 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/server.mjs ./server.mjs
 USER node
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))"
+# No HEALTHCHECK. Timeweb treats one as the deploy gate and left the
+# container at "starting" for the whole 180s window after /health had
+# already returned 200. The panel path /health accepts a single 2xx.
 CMD ["node", "server.mjs"]

@@ -55,10 +55,17 @@ function send(
   res.end(payload)
 }
 
-function sendJson(res: ServerResponse, status: number, body: unknown, method = 'GET') {
+function sendJson(
+  res: ServerResponse,
+  status: number,
+  body: unknown,
+  method = 'GET',
+  headers: Record<string, string> = {},
+) {
   send(res, status, JSON.stringify(body), {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',
+    ...headers,
   }, method)
 }
 
@@ -209,7 +216,7 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
   ): Promise<number> {
     if (pathname === '/health') {
       const status = draining ? 503 : 200
-      sendJson(res, status, { status: draining ? 'draining' : 'ok' }, method)
+      sendJson(res, status, { status: draining ? 'draining' : 'ok' }, method, { connection: 'close' })
       return status
     }
 
